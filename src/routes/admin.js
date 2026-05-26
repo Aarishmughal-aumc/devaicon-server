@@ -4,6 +4,7 @@ import { TimeLog } from '../models/TimeLog.js';
 import { Project } from '../models/Project.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { toCSV } from '../lib/csv.js';
+import { FLAG_REASON_MAX_LENGTH } from '../constants.js';
 
 const router = Router();
 
@@ -36,6 +37,52 @@ router.post('/approve', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+router.post('/flag', requireAuth, requireAdmin, async (req, res) => {
+  const body = req.body ?? {};
+  const ids = Array.isArray(body.ids)
+    ? body.ids.filter((x) => typeof x === 'string')
+    : [];
+  const flagged = body.flagged !== false;
+  const reason = String(body.reason ?? '').trim();
+
+  if (ids.length === 0) return res.status(400).json({ error: 'no_ids' });
+  if (ids.length > 500) return res.status(400).json({ error: 'too_many_ids' });
+  if (reason.length > FLAG_REASON_MAX_LENGTH) {
+    return res.status(400).json({
+      error: 'reason_too_long',
+      message: `Reason must be at most ${FLAG_REASON_MAX_LENGTH} characters.`,
+    });
+  }
+
+  const validIds = ids.filter((id) => mongoose.isValidObjectId(id));
+  if (validIds.length === 0) return res.json({ updated: 0 });
+
+  try {
+    const update = flagged
+      ? {
+          flagged: true,
+          flaggedAt: new Date(),
+          flaggedBy: req.user.username,
+          flagReason: reason,
+        }
+      : {
+          flagged: false,
+          flaggedAt: null,
+          flaggedBy: '',
+          flagReason: '',
+        };
+
+    const result = await TimeLog.updateMany(
+      { _id: { $in: validIds } },
+      { $set: update },
+    );
+    res.json({ updated: result.modifiedCount });
+  } catch (e) {
+    console.error('POST /admin/flag failed:', e?.message ?? e);
+    res.status(500).json({ error: 'db_error', detail: e?.message ?? String(e) });
+  }
+});
+
 router.get('/export', requireAuth, requireAdmin, async (_req, res) => {
   try {
     const [logs, projects] = await Promise.all([
@@ -55,6 +102,10 @@ router.get('/export', requireAuth, requireAdmin, async (_req, res) => {
         'LoggedAt',
         'ApprovedAt',
         'ApprovedBy',
+        'Flagged',
+        'FlaggedAt',
+        'FlaggedBy',
+        'FlagReason',
       ],
       logs.map((l) => [
         l._id.toString(),
@@ -67,6 +118,10 @@ router.get('/export', requireAuth, requireAdmin, async (_req, res) => {
         l.loggedAt ? new Date(l.loggedAt).toISOString() : '',
         l.approvedAt ? new Date(l.approvedAt).toISOString() : '',
         l.approvedBy ?? '',
+        l.flagged ? 'true' : 'false',
+        l.flaggedAt ? new Date(l.flaggedAt).toISOString() : '',
+        l.flaggedBy ?? '',
+        l.flagReason ?? '',
       ]),
     );
 

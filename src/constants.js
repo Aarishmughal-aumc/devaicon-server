@@ -13,3 +13,8 @@ export const CATEGORIES = [
 export const SESSION_COOKIE_NAME = 'devaicon_session';
 export const SESSION_TTL_HOURS = 12;
 export const SESSION_TTL_SECONDS = SESSION_TTL_HOURS * 60 * 60;
+
+export const HOURS_MAX = 3;
+export const DESCRIPTION_MIN_LENGTH = 10;
+export const DESCRIPTION_MAX_LENGTH = 1000;
+export const FLAG_REASON_MAX_LENGTH = 500;

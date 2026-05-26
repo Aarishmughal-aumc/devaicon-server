@@ -3,7 +3,12 @@ import mongoose from 'mongoose';
 import { TimeLog } from '../models/TimeLog.js';
 import { Project } from '../models/Project.js';
 import { requireAuth } from '../middleware/auth.js';
-import { CATEGORIES } from '../constants.js';
+import {
+  CATEGORIES,
+  HOURS_MAX,
+  DESCRIPTION_MIN_LENGTH,
+  DESCRIPTION_MAX_LENGTH,
+} from '../constants.js';
 
 const router = Router();
 
@@ -27,6 +32,10 @@ router.get('/', requireAuth, async (req, res) => {
       loggedAt: d.loggedAt ? new Date(d.loggedAt).toISOString() : '',
       approvedAt: d.approvedAt ? new Date(d.approvedAt).toISOString() : '',
       approvedBy: d.approvedBy ?? '',
+      flagged: Boolean(d.flagged),
+      flaggedAt: d.flaggedAt ? new Date(d.flaggedAt).toISOString() : '',
+      flaggedBy: d.flaggedBy ?? '',
+      flagReason: d.flagReason ?? '',
     }));
     res.json({ logs });
   } catch (e) {
@@ -53,10 +62,22 @@ router.post('/', requireAuth, async (req, res) => {
   if (!CATEGORIES.includes(category)) {
     return res.status(400).json({ error: 'invalid_category' });
   }
-  if (!Number.isFinite(hours) || hours <= 0 || hours > 24) {
+  if (!Number.isFinite(hours) || hours <= 0 || hours > HOURS_MAX) {
     return res.status(400).json({
       error: 'invalid_hours',
-      message: 'Hours must be between 0 and 24.',
+      message: `Hours must be greater than 0 and at most ${HOURS_MAX}.`,
+    });
+  }
+  if (description.length < DESCRIPTION_MIN_LENGTH) {
+    return res.status(400).json({
+      error: 'description_too_short',
+      message: `Description must be at least ${DESCRIPTION_MIN_LENGTH} characters.`,
+    });
+  }
+  if (description.length > DESCRIPTION_MAX_LENGTH) {
+    return res.status(400).json({
+      error: 'description_too_long',
+      message: `Description must be at most ${DESCRIPTION_MAX_LENGTH} characters.`,
     });
   }
 

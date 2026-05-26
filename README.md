@@ -61,11 +61,19 @@ All endpoints under `/api`. Auth uses an httpOnly JWT cookie (`devaicon_session`
 - `GET    /api/logs` — current user's logs.
 - `GET    /api/logs?all=1` — all logs (admin only).
 - `POST   /api/logs` — `{ date (YYYY-MM-DD), project, category, hours, description }` → `{ log }`.
+  - `hours` must be `> 0` and `<= 3`.
+  - `description` must be at least 10 characters (max 1000).
 - `DELETE /api/logs?id=...` — devs can delete their own un-approved logs; admins can delete anything.
+
+Each log in the response includes `flagged`, `flaggedAt`, `flaggedBy`, and
+`flagReason` alongside the existing approval fields.
 
 ### Admin
 - `POST /api/admin/approve` — `{ ids: string[], approved?: boolean }` → `{ updated }`. Default `approved: true`.
-- `GET  /api/admin/export` — CSV of all TimeLogs + Projects.
+- `POST /api/admin/flag` — `{ ids: string[], flagged?: boolean, reason?: string }` → `{ updated }`.
+  - Default `flagged: true`. `reason` is optional (max 500 chars). Unflagging clears the reason.
+  - Flag state is independent of approval — a log can be both flagged and approved.
+- `GET  /api/admin/export` — CSV of all TimeLogs + Projects (includes flag columns).
 
 ## Dual-backend setup
 
