@@ -58,7 +58,8 @@ All endpoints under `/api`. Auth uses an httpOnly JWT cookie (`devaicon_session`
 - `DELETE /api/projects?id=...` — admin only.
 
 ### Logs
-- `GET    /api/logs` — current user's logs (paginated).
+- `GET    /api/logs` — current user's logs. Returns all matching logs unless
+  pagination is requested (see below).
 - `GET    /api/logs?all=1` — all logs (admin only). Add `username=` to narrow to one user.
 - `POST   /api/logs` — `{ date (YYYY-MM-DD), project, category, hours, description }` → `{ log }`.
   - `hours` must be `> 0` and `<= 3`.
@@ -69,12 +70,14 @@ All endpoints under `/api`. Auth uses an httpOnly JWT cookie (`devaicon_session`
 
 #### Listing filters & pagination (`GET /api/logs`)
 
-All optional; combine freely. Malformed values are ignored.
+All optional; combine freely. Malformed values are ignored. Pagination is
+**opt-in**: if neither `page` nor `pageSize` is sent, every matching log is
+returned (so dashboards can compute accurate totals).
 
 | Param                 | Meaning                                              |
 | --------------------- | ---------------------------------------------------- |
-| `page`                | 1-based page number (default `1`)                    |
-| `pageSize`            | items per page (default `12`, max `100`)             |
+| `page`                | 1-based page number (default `1`); engages paging    |
+| `pageSize`            | items per page (default `12`, max `100`); engages paging |
 | `dateFrom` / `dateTo` | inclusive `YYYY-MM-DD` range on the log's `date`     |
 | `hoursMin` / `hoursMax` | inclusive numeric bounds on `hours` (≥ / ≤)        |
 | `status`              | `approved` \| `pending` \| `flagged` \| `unflagged`  |

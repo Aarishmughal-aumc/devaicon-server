@@ -50,12 +50,21 @@ router.get('/', requireAuth, async (req, res) => {
       filter.username = req.user.username;
     }
 
-    const { page, pageSize, skip } = parsePagination(req.query);
+    // Pagination is opt-in: without page/pageSize we return all matching logs,
+    // since consumers like the dashboard need the full set for accurate totals.
+    const paginate = req.query.page != null || req.query.pageSize != null;
+    const total = await TimeLog.countDocuments(filter);
 
-    const [total, docs] = await Promise.all([
-      TimeLog.countDocuments(filter),
-      TimeLog.find(filter).sort({ loggedAt: -1 }).skip(skip).limit(pageSize).lean(),
-    ]);
+    let query = TimeLog.find(filter).sort({ loggedAt: -1 });
+    let page = 1;
+    let pageSize = total;
+    if (paginate) {
+      const p = parsePagination(req.query);
+      page = p.page;
+      pageSize = p.pageSize;
+      query = query.skip(p.skip).limit(p.pageSize);
+    }
+    const docs = await query.lean();
 
     res.json({
       logs: docs.map(serializeLog),
@@ -63,7 +72,7 @@ router.get('/', requireAuth, async (req, res) => {
         page,
         pageSize,
         total,
-        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+        totalPages: paginate ? Math.max(1, Math.ceil(total / pageSize)) : 1,
       },
     });
   } catch (e) {
