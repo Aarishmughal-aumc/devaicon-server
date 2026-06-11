@@ -58,12 +58,42 @@ All endpoints under `/api`. Auth uses an httpOnly JWT cookie (`devaicon_session`
 - `DELETE /api/projects?id=...` — admin only.
 
 ### Logs
-- `GET    /api/logs` — current user's logs.
-- `GET    /api/logs?all=1` — all logs (admin only).
+- `GET    /api/logs` — current user's logs (paginated).
+- `GET    /api/logs?all=1` — all logs (admin only). Add `username=` to narrow to one user.
 - `POST   /api/logs` — `{ date (YYYY-MM-DD), project, category, hours, description }` → `{ log }`.
   - `hours` must be `> 0` and `<= 3`.
   - `description` must be at least 10 characters (max 1000).
 - `DELETE /api/logs?id=...` — devs can delete their own un-approved logs; admins can delete anything.
+- `POST   /api/logs/bulk-delete` — `{ ids: string[] }` → `{ deleted }`. Multi-select delete.
+  Devs only remove their own un-approved logs; admins remove anything. Skips IDs they can't touch.
+
+#### Listing filters & pagination (`GET /api/logs`)
+
+All optional; combine freely. Malformed values are ignored.
+
+| Param                 | Meaning                                              |
+| --------------------- | ---------------------------------------------------- |
+| `page`                | 1-based page number (default `1`)                    |
+| `pageSize`            | items per page (default `12`, max `100`)             |
+| `dateFrom` / `dateTo` | inclusive `YYYY-MM-DD` range on the log's `date`     |
+| `hoursMin` / `hoursMax` | inclusive numeric bounds on `hours` (≥ / ≤)        |
+| `status`              | `approved` \| `pending` \| `flagged` \| `unflagged`  |
+| `project`             | exact project name                                   |
+| `category`            | exact category                                       |
+| `username`            | only with `all=1` (admin) — scope to one user        |
+
+Response shape:
+
+```json
+{
+  "logs": [ /* … */ ],
+  "pagination": { "page": 1, "pageSize": 12, "total": 137, "totalPages": 12 }
+}
+```
+
+> The legacy Sheets backend (`/api/legacy/logs`) accepts the same params and returns
+> the same shape, except `status=flagged`/`unflagged` match nothing there (no flag data),
+> and bulk delete is `DELETE /api/legacy/logs?ids=a,b,c`.
 
 Each log in the response includes `flagged`, `flaggedAt`, `flaggedBy`, and
 `flagReason` alongside the existing approval fields.

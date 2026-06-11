@@ -28,6 +28,11 @@ const timeLogSchema = new mongoose.Schema(
   { versionKey: false },
 );
 
+// Listings sort by loggedAt and are scoped to a user; range filters hit date/hours.
+timeLogSchema.index({ username: 1, loggedAt: -1 });
+timeLogSchema.index({ loggedAt: -1 });
+timeLogSchema.index({ date: 1 });
+
 timeLogSchema.set('toJSON', {
   versionKey: false,
   transform: (_doc, ret) => {

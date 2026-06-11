@@ -1,5 +1,5 @@
 const WINDOW_MS = 15 * 60 * 1000;
-const MAX_ATTEMPTS = 5;
+const MAX_ATTEMPTS = 20;
 
 const store = new Map();
 
@@ -35,11 +35,11 @@ export function clearAttempts(key) {
 }
 
 export function getClientIp(req) {
-  const fwd = req.headers['x-forwarded-for'];
-  if (typeof fwd === 'string' && fwd.length) return fwd.split(',')[0].trim();
-  const real = req.headers['x-real-ip'];
-  if (typeof real === 'string' && real.length) return real;
-  return req.ip || 'unknown';
+  const fwd = req.headers["x-forwarded-for"];
+  if (typeof fwd === "string" && fwd.length) return fwd.split(",")[0].trim();
+  const real = req.headers["x-real-ip"];
+  if (typeof real === "string" && real.length) return real;
+  return req.ip || "unknown";
 }
 
 setInterval(() => {

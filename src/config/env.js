@@ -21,6 +21,12 @@ export const env = {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),
+  // Optional: override Node's DNS resolver (e.g. when the system resolver is
+  // 127.0.0.1 and SRV lookups fail with ECONNREFUSED). e.g. "1.1.1.1,8.8.8.8".
+  dnsServers: (process.env.DNS_SERVERS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
 };
 
 export const isProd = env.nodeEnv === 'production';

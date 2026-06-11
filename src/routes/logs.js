@@ -8,9 +8,30 @@ import {
   HOURS_MAX,
   DESCRIPTION_MIN_LENGTH,
   DESCRIPTION_MAX_LENGTH,
+  BULK_IDS_MAX,
 } from '../constants.js';
+import { buildLogFilter, parsePagination } from '../lib/logQuery.js';
 
 const router = Router();
+
+function serializeLog(d) {
+  return {
+    id: d._id.toString(),
+    date: d.date,
+    username: d.username,
+    project: d.project,
+    category: d.category,
+    hours: d.hours,
+    description: d.description ?? '',
+    loggedAt: d.loggedAt ? new Date(d.loggedAt).toISOString() : '',
+    approvedAt: d.approvedAt ? new Date(d.approvedAt).toISOString() : '',
+    approvedBy: d.approvedBy ?? '',
+    flagged: Boolean(d.flagged),
+    flaggedAt: d.flaggedAt ? new Date(d.flaggedAt).toISOString() : '',
+    flaggedBy: d.flaggedBy ?? '',
+    flagReason: d.flagReason ?? '',
+  };
+}
 
 router.get('/', requireAuth, async (req, res) => {
   const wantAll = req.query.all === '1';
@@ -19,25 +40,32 @@ router.get('/', requireAuth, async (req, res) => {
   }
 
   try {
-    const filter = wantAll ? {} : { username: req.user.username };
-    const docs = await TimeLog.find(filter).sort({ loggedAt: -1 }).lean();
-    const logs = docs.map((d) => ({
-      id: d._id.toString(),
-      date: d.date,
-      username: d.username,
-      project: d.project,
-      category: d.category,
-      hours: d.hours,
-      description: d.description ?? '',
-      loggedAt: d.loggedAt ? new Date(d.loggedAt).toISOString() : '',
-      approvedAt: d.approvedAt ? new Date(d.approvedAt).toISOString() : '',
-      approvedBy: d.approvedBy ?? '',
-      flagged: Boolean(d.flagged),
-      flaggedAt: d.flaggedAt ? new Date(d.flaggedAt).toISOString() : '',
-      flaggedBy: d.flaggedBy ?? '',
-      flagReason: d.flagReason ?? '',
-    }));
-    res.json({ logs });
+    const filter = buildLogFilter(req.query);
+    if (wantAll) {
+      // Admins viewing everything can still narrow to a single user.
+      const username = String(req.query.username ?? '').trim().toLowerCase();
+      if (username) filter.username = username;
+    } else {
+      // Non-admins are always scoped to their own logs.
+      filter.username = req.user.username;
+    }
+
+    const { page, pageSize, skip } = parsePagination(req.query);
+
+    const [total, docs] = await Promise.all([
+      TimeLog.countDocuments(filter),
+      TimeLog.find(filter).sort({ loggedAt: -1 }).skip(skip).limit(pageSize).lean(),
+    ]);
+
+    res.json({
+      logs: docs.map(serializeLog),
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      },
+    });
   } catch (e) {
     console.error('GET /logs failed:', e?.message ?? e);
     res.status(500).json({ error: 'db_error', detail: e?.message ?? String(e) });
@@ -135,6 +163,36 @@ router.delete('/', requireAuth, async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     console.error('DELETE /logs failed:', e?.message ?? e);
+    res.status(500).json({ error: 'db_error', detail: e?.message ?? String(e) });
+  }
+});
+
+// Multi-select: delete several logs at once.
+// Devs may only delete their own un-approved logs; admins may delete anything.
+router.post('/bulk-delete', requireAuth, async (req, res) => {
+  const body = req.body ?? {};
+  const ids = Array.isArray(body.ids)
+    ? body.ids.filter((x) => typeof x === 'string')
+    : [];
+
+  if (ids.length === 0) return res.status(400).json({ error: 'no_ids' });
+  if (ids.length > BULK_IDS_MAX) {
+    return res.status(400).json({ error: 'too_many_ids' });
+  }
+
+  const validIds = ids.filter((id) => mongoose.isValidObjectId(id));
+  if (validIds.length === 0) return res.json({ deleted: 0 });
+
+  try {
+    const filter =
+      req.user.role === 'admin'
+        ? { _id: { $in: validIds } }
+        : { _id: { $in: validIds }, username: req.user.username, approvedAt: null };
+
+    const result = await TimeLog.deleteMany(filter);
+    res.json({ deleted: result.deletedCount });
+  } catch (e) {
+    console.error('POST /logs/bulk-delete failed:', e?.message ?? e);
     res.status(500).json({ error: 'db_error', detail: e?.message ?? String(e) });
   }
 });

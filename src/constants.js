@@ -18,3 +18,9 @@ export const HOURS_MAX = 3;
 export const DESCRIPTION_MIN_LENGTH = 10;
 export const DESCRIPTION_MAX_LENGTH = 1000;
 export const FLAG_REASON_MAX_LENGTH = 500;
+
+// Listing / pagination
+export const PAGE_SIZE_DEFAULT = 12;
+export const PAGE_SIZE_MAX = 100;
+export const LOG_STATUSES = ['approved', 'pending', 'flagged', 'unflagged'];
+export const BULK_IDS_MAX = 500;
