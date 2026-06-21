@@ -11,6 +11,7 @@ import {
   BULK_IDS_MAX,
 } from '../constants.js';
 import { buildLogFilter, parsePagination } from '../lib/logQuery.js';
+import { composeDescription } from '../lib/description.js';
 
 const router = Router();
 
@@ -87,7 +88,9 @@ router.post('/', requireAuth, async (req, res) => {
   const project = String(body.project ?? '').trim();
   const category = String(body.category ?? '').trim();
   const hours = Number(body.hours);
-  const description = String(body.description ?? '').trim();
+  // The free-text summary is required; the structured fields (tools/area/
+  // status/reference) are optional and composed into the stored description.
+  const summary = String(body.description ?? '').trim();
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return res.status(400).json({
@@ -105,12 +108,20 @@ router.post('/', requireAuth, async (req, res) => {
       message: `Hours must be greater than 0 and at most ${HOURS_MAX}.`,
     });
   }
-  if (description.length < DESCRIPTION_MIN_LENGTH) {
+  if (summary.length < DESCRIPTION_MIN_LENGTH) {
     return res.status(400).json({
       error: 'description_too_short',
-      message: `Description must be at least ${DESCRIPTION_MIN_LENGTH} characters.`,
+      message: `Summary must be at least ${DESCRIPTION_MIN_LENGTH} characters.`,
     });
   }
+
+  const description = composeDescription({
+    summary,
+    tools: body.tools,
+    areas: body.areas,
+    status: body.status,
+    reference: body.reference,
+  });
   if (description.length > DESCRIPTION_MAX_LENGTH) {
     return res.status(400).json({
       error: 'description_too_long',
