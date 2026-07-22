@@ -8,6 +8,10 @@ export const CATEGORIES = [
   'Docs',
   'Research',
   'Other',
+  // Non-working days; the client excludes these from hour totals and charts.
+  // Keep in sync with client/src/lib/types.ts.
+  'Leave',
+  'Holiday',
 ];
 
 export const SESSION_COOKIE_NAME = 'devaicon_session';
