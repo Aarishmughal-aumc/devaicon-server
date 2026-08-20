@@ -13,6 +13,19 @@ const userSchema = new mongoose.Schema(
     },
     passwordHash: { type: String, required: true },
     role: { type: String, enum: ['dev', 'admin'], required: true },
+    // Dashboard layout, owned by the client. Absent means "never customised",
+    // which is why nothing here carries a default: the client's own defaults
+    // must win until the user actually chooses something.
+    preferences: {
+      overview: {
+        _id: false,
+        type: {
+          pinned: { type: [String], default: undefined },
+          extra: { type: [String], default: undefined },
+        },
+        default: undefined,
+      },
+    },
   },
   { timestamps: true },
 );

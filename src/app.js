@@ -10,6 +10,7 @@ import authRoutes from "./routes/auth.js";
 import logsRoutes from "./routes/logs.js";
 import projectsRoutes from "./routes/projects.js";
 import adminRoutes from "./routes/admin.js";
+import preferencesRoutes from "./routes/preferences.js";
 
 export function createApp() {
   const app = express();
@@ -35,6 +36,7 @@ export function createApp() {
   app.use("/api/logs", logsRoutes);
   app.use("/api/projects", projectsRoutes);
   app.use("/api/admin", adminRoutes);
+  app.use("/api/preferences", preferencesRoutes);
 
   app.use((_req, res) => res.status(404).json({ error: "not_found" }));
 
