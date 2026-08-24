@@ -7,6 +7,9 @@ export const CATEGORIES = [
   'Bug Fix',
   'Docs',
   'Research',
+  'Testing',
+  'Deployment',
+  'Project Management',
   'Other',
   // Non-working days; the client excludes these from hour totals and charts.
   // Keep in sync with client/src/lib/types.ts.
