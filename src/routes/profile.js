@@ -30,17 +30,31 @@ async function loadSelf(req) {
   return User.findById(req.user.id).populate('roleId');
 }
 
-/** Each permission the person holds, and whether it comes from their role. */
+/**
+ * Every permission in the catalogue, whether the person holds it, and why:
+ * 'role' (their role gives it), 'personal' (added for them), 'removed' (their
+ * role gives it but it was taken away for them), or null (not part of their
+ * access). The whole catalogue is sent so Settings can show what is missing
+ * as well as what is there.
+ */
 function describeAccess(user) {
   const fromRole = permissionsOf(user.roleId);
   const held = toSessionUser(user).permissions;
-  return PERMISSIONS.filter((p) => held.includes(p.key)).map((p) => ({
-    key: p.key,
-    group: p.group,
-    label: p.label,
-    description: p.description,
-    source: fromRole.includes(p.key) ? 'role' : 'personal',
-  }));
+  return PERMISSIONS.map((p) => {
+    const has = held.includes(p.key);
+    const inRole = fromRole.includes(p.key);
+    let source = null;
+    if (has) source = inRole ? 'role' : 'personal';
+    else if (inRole) source = 'removed';
+    return {
+      key: p.key,
+      group: p.group,
+      label: p.label,
+      description: p.description,
+      held: has,
+      source,
+    };
+  });
 }
 
 function profileBody(user) {

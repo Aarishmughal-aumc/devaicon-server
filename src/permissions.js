@@ -38,6 +38,31 @@ export const PERMISSIONS = [
     description: 'Add and remove the projects time can be logged against.',
   },
   {
+    key: 'posts.write',
+    group: 'Insights',
+    label: 'Write posts',
+    description: 'Create posts and edit drafts, including uploading images.',
+  },
+  {
+    key: 'posts.publish',
+    group: 'Insights',
+    label: 'Publish posts',
+    description:
+      'Publish, schedule and unpublish posts, and edit posts that are live.',
+  },
+  {
+    key: 'posts.delete',
+    group: 'Insights',
+    label: 'Delete posts',
+    description: 'Delete posts for good, including live ones.',
+  },
+  {
+    key: 'blog.library',
+    group: 'Insights',
+    label: 'Manage the blog library',
+    description: 'Add and edit authors, calls to action and categories.',
+  },
+  {
     key: 'users.manage',
     group: 'Team',
     label: 'Manage users',
@@ -54,14 +79,6 @@ export const PERMISSIONS = [
 ];
 
 export const PERMISSION_KEYS = PERMISSIONS.map((p) => p.key);
-
-/** Permissions that open some part of the admin panel. */
-export const ADMIN_PANEL_PERMISSIONS = [
-  'timelogs.review',
-  'projects.manage',
-  'users.manage',
-  'roles.manage',
-];
 
 /** Drop anything that isn't a known key, and de-duplicate. */
 export function cleanPermissions(value) {

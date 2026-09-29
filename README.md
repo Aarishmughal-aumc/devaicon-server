@@ -25,7 +25,7 @@ permissions from the fixed catalogue in `src/permissions.js`. Roles and their
 toggles are managed in the admin panel (`/admin/roles`).
 
 A role is a starting profile: an admin can also grant or remove individual
-permissions for one person (`/admin/team` → Profile & access). Those are
+permissions for one person (Dashboard → Team → Edit access). Those are
 stored as overrides, so editing a role still reaches everyone holding it except
 where a person has their own setting for that permission. Effective
 permissions = role + granted − revoked (`effectivePermissions()` in
@@ -163,15 +163,44 @@ The Owner role can't be edited or deleted, and a non-Owner can't edit the
 role they hold.
 
 ### Profile (any signed-in user, acts on themselves)
-- `GET   /api/profile` — `{ user, access: [{ key, group, label, description, source: 'role' | 'personal' }], lastLoginAt, createdAt }`.
+- `GET   /api/profile` — `{ user, access: [{ key, group, label, description, held, source: 'role' | 'personal' | 'removed' | null }], lastLoginAt, createdAt }`. `access` covers the whole catalogue; `held` says whether the person has each one.
 - `PATCH /api/profile` — `{ displayName }` (≤ 60 chars; empty clears it).
 - `POST  /api/profile/password` — `{ currentPassword, newPassword }`. Wrong current passwords are
   rate-limited per account. Signs out other devices; this browser gets a fresh cookie.
 - `POST  /api/profile/sign-out-others` — same effect without a password change.
 
+### Insights (blog)
+
+Admin — any of `posts.write`, `posts.publish`, `posts.delete` to read:
+- `GET    /api/posts` (`?status=draft|scheduled|published&q=`) — summaries.
+- `GET    /api/posts/:id` — the editor's copy; `GET /api/posts/:id/preview` — the reader's view, drafts included.
+- `POST   /api/posts` (`posts.write`) — `{ title }` → a new draft with a unique slug.
+- `PATCH  /api/posts/:id` (`posts.write`, plus `posts.publish` if the post is live or scheduled) —
+  any of `title, subtitle, slug, categoryId, tags, authorId, heroImage, body, faqs, closingCtaId, toc, seo, featured`.
+  A slug change on a post that has ever been public keeps the old slug as a 301 redirect. At most 3 posts featured.
+- `POST   /api/posts/:id/publish` (`posts.publish`) — `{ publishAt? }`; a future date schedules. Refused with
+  `problems[]` until the post has a title, valid slug, author, body and (if it has a hero image) alt text.
+- `POST   /api/posts/:id/unpublish` (`posts.publish`), `DELETE /api/posts/:id` (`posts.delete`).
+
+Library — readable by anyone working on posts, writable with `blog.library`; each item carries `postCount`,
+and anything still used by a post can't be deleted:
+`/api/authors`, `/api/ctas`, `/api/categories` (`GET`, `POST`, `PATCH /:id`, `DELETE /:id`).
+
+Public, no session, live posts only (the Next.js site reads these server-side and caches them):
+- `GET /api/public/posts` (`?featured=1&category=<slug>&limit=`), `GET /api/public/posts/:slug`
+  (`{ post, related }`, or `{ redirect }` for an old slug), `GET /api/public/categories`.
+
+Post bodies are editor documents (Tiptap JSON). They're stored as-is and rendered by the site through a
+whitelist of node types with URL checks, never as HTML.
+
+On first start the four posts that used to be hard-coded in the client are imported from
+`src/seed/insights.json` (keeping their URLs and original dates), once. A timer publishes scheduled posts
+every minute. After any change that affects live content, the server asks the site to refresh the affected
+pages (`SITE_URL` + `REVALIDATE_SECRET`); without those set, pages refresh on their 5-minute cache timer.
+
 ## Running with the client
 
-`client/next.config.mjs` rewrites `/api/{auth,logs,projects,admin,preferences,users,roles,profile}/*`
+`client/next.config.mjs` rewrites `/api/{auth,logs,projects,admin,preferences,users,roles,profile,posts,authors,ctas,categories}/*`
 to `${EXPRESS_API_URL}/api/...`, so calls stay same-origin and cookies keep
 working. The Next proxy checks the session cookie's signature to send
 signed-out visitors to `/login`, which is why both apps need the **same
@@ -184,7 +213,13 @@ In `client/.env` (or `.env.local`):
 ```
 EXPRESS_API_URL=http://localhost:4000
 SESSION_SECRET=<the same secret as server/.env>
+# Optional, for instant page refresh on publish — the same value as server/.env:
+REVALIDATE_SECRET=<a long random string>
+# Optional, for image uploads in the editor (from the Vercel Blob store):
+BLOB_READ_WRITE_TOKEN=<token>
 ```
+
+Without `BLOB_READ_WRITE_TOKEN` the editor still works; images are added by pasting a link.
 
 `EXPRESS_API_URL` is only used by `next.config.mjs` at build/start time; if
 unset it falls back to `http://localhost:4000`.

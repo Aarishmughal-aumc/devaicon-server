@@ -21,6 +21,11 @@ export const env = {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),
+  // Optional: the public site's origin (e.g. https://devaicon.com) and a
+  // shared secret, so publishing a post can refresh its pages at once.
+  // Without them, pages still update when the site's cache expires.
+  siteUrl: (process.env.SITE_URL ?? '').replace(/\/+$/, ''),
+  revalidateSecret: process.env.REVALIDATE_SECRET ?? '',
   // Optional: override Node's DNS resolver (e.g. when the system resolver is
   // 127.0.0.1 and SRV lookups fail with ECONNREFUSED). e.g. "1.1.1.1,8.8.8.8".
   dnsServers: (process.env.DNS_SERVERS ?? '')
