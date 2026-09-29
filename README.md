@@ -1,7 +1,7 @@
 # Devaicon Server
 
-Express + Mongoose backend that mirrors the existing Next.js fake backend
-(previously backed by Google Sheets).
+Express + Mongoose backend for the time logger and the admin panel. It owns
+all data and every permission check; the Next.js client is UI only.
 
 ## Setup
 
@@ -18,21 +18,46 @@ Required env vars (see `.env.example`):
 - `CLIENT_ORIGIN` — comma-separated origins of the Next.js client (e.g. `http://localhost:3000`)
 - `PORT` — defaults to `4000`
 
+## Roles and permissions
+
+Access is role-based. Each user has one role; each role is a set of
+permissions from the fixed catalogue in `src/permissions.js`. Roles and their
+toggles are managed in the admin panel (`/admin/roles`).
+
+A role is a starting profile: an admin can also grant or remove individual
+permissions for one person (`/admin/team` → Profile & access). Those are
+stored as overrides, so editing a role still reaches everyone holding it except
+where a person has their own setting for that permission. Effective
+permissions = role + granted − revoked (`effectivePermissions()` in
+`src/models/Role.js`). Owners always hold everything.
+
+On every start, `ensureRbac()` (`src/lib/rbac.js`):
+
+- creates the locked **Owner** role (always every permission) and the default
+  **Admin** and **Developer** roles, if missing;
+- migrates users still on the old `role: 'dev' | 'admin'` field — `admin`
+  becomes Owner, `dev` becomes Developer. Safe to run repeatedly.
+
+The session cookie holds only the user id and a `sessionVersion`. User, role
+and permissions are read from Mongo on every request, so role changes,
+deactivation and password resets take effect immediately.
+
 ## Seeding users
 
-Users live in MongoDB with bcrypt-hashed passwords. To bootstrap accounts from
-env vars (mirrors the old `{NAME}_PASSWORD` convention):
+Normally people are added from the admin panel (`/admin/team`). To bootstrap
+the first Owner on an empty database, use env vars:
 
 ```bash
 # in .env:
-# DEV1_PASSWORD=devpass
-# ADMIN1_PASSWORD=adminpass
+# ADMIN1_PASSWORD=adminpass   → Owner
+# DEV1_PASSWORD=devpass       → Developer
 
 npm run seed
 ```
 
-Any username starting with `admin` becomes an admin; everyone else is `dev`.
-Re-running the seed updates the password/role for existing users.
+Any username starting with `admin` becomes an Owner; everyone else a
+Developer. Re-running the seed resets the password and role for existing
+users, and signs them out.
 
 ## Run
 
@@ -47,26 +72,32 @@ All endpoints under `/api`. Auth uses an httpOnly JWT cookie (`devaicon_session`
 12 h TTL. State-changing requests must come from an allowed origin
 (`CLIENT_ORIGIN`).
 
+Each endpoint names the permission it needs. `401` means not signed in (or
+the session was revoked — the cookie is cleared); `403` means the role lacks
+the permission.
+
 ### Auth
-- `POST /api/auth/login` — `{ username, password }` → `{ user }`, sets cookie. Rate-limited (5 / 15 min / IP).
+- `POST /api/auth/login` — `{ username, password }` → `{ user }`, sets cookie. Rate-limited (20 failures / 15 min / IP).
+  `403 account_disabled` for deactivated users.
 - `POST /api/auth/logout` — clears cookie.
-- `GET  /api/auth/me` — `{ user }` or `401`.
+- `GET  /api/auth/me` — `{ user }` or `401`, where
+  `user = { id, username, role: { id, name, isOwner }, permissions: string[] }`.
 
 ### Projects
-- `GET    /api/projects` — list (any authed user).
-- `POST   /api/projects` — `{ name }` → `{ project }` (admin only).
-- `DELETE /api/projects?id=...` — admin only.
+- `GET    /api/projects` — list (any signed-in user).
+- `POST   /api/projects` — `{ name }` → `{ project }` (`projects.manage`).
+- `DELETE /api/projects?id=...` — `projects.manage`.
 
 ### Logs
-- `GET    /api/logs` — current user's logs. Returns all matching logs unless
+- `GET    /api/logs` — current user's logs (`timelogs.log`). Returns all matching logs unless
   pagination is requested (see below).
-- `GET    /api/logs?all=1` — all logs (admin only). Add `username=` to narrow to one user.
-- `POST   /api/logs` — `{ date (YYYY-MM-DD), project, category, hours, description }` → `{ log }`.
+- `GET    /api/logs?all=1` — all logs (`timelogs.review`). Add `username=` to narrow to one user.
+- `POST   /api/logs` — `{ date (YYYY-MM-DD), project, category, hours, description }` → `{ log }` (`timelogs.log`).
   - `hours` must be `> 0` and `<= 3`.
   - `description` must be at least 10 characters (max 1000).
-- `DELETE /api/logs?id=...` — devs can delete their own un-approved logs; admins can delete anything.
+- `DELETE /api/logs?id=...` — your own un-approved logs; anything with `timelogs.delete_any`.
 - `POST   /api/logs/bulk-delete` — `{ ids: string[] }` → `{ deleted }`. Multi-select delete.
-  Devs only remove their own un-approved logs; admins remove anything. Skips IDs they can't touch.
+  Same rule as single delete. Skips IDs the caller can't touch.
 
 #### Listing filters & pagination (`GET /api/logs`)
 
@@ -83,7 +114,7 @@ returned (so dashboards can compute accurate totals).
 | `status`              | `approved` \| `pending` \| `flagged` \| `unflagged`  |
 | `project`             | exact project name                                   |
 | `category`            | exact category                                       |
-| `username`            | only with `all=1` (admin) — scope to one user        |
+| `username`            | only with `all=1` (reviewer) — scope to one user     |
 
 Response shape:
 
@@ -94,44 +125,57 @@ Response shape:
 }
 ```
 
-> The legacy Sheets backend (`/api/legacy/logs`) accepts the same params and returns
-> the same shape, except `status=flagged`/`unflagged` match nothing there (no flag data),
-> and bulk delete is `DELETE /api/legacy/logs?ids=a,b,c`.
-
 Each log in the response includes `flagged`, `flaggedAt`, `flaggedBy`, and
 `flagReason` alongside the existing approval fields.
 
-### Admin
-- `POST /api/admin/approve` — `{ ids: string[], approved?: boolean }` → `{ updated }`. Default `approved: true`.
-- `POST /api/admin/flag` — `{ ids: string[], flagged?: boolean, reason?: string }` → `{ updated }`.
+### Admin (time-log review)
+- `POST /api/admin/approve` (`timelogs.review`) — `{ ids: string[], approved?: boolean }` → `{ updated }`. Default `approved: true`.
+- `POST /api/admin/flag` (`timelogs.review`) — `{ ids: string[], flagged?: boolean, reason?: string }` → `{ updated }`.
   - Default `flagged: true`. `reason` is optional (max 500 chars). Unflagging clears the reason.
   - Flag state is independent of approval — a log can be both flagged and approved.
-- `GET  /api/admin/export` — CSV of all TimeLogs + Projects (includes flag columns).
+- `GET  /api/admin/export` (`timelogs.export`) — CSV of all TimeLogs + Projects (includes flag columns).
 
-## Dual-backend setup
+### Users (`users.manage`)
+- `GET   /api/users` — `{ users: [{ id, username, displayName, role, permissions, overrides, active, lastLoginAt, createdAt }] }`.
+  `permissions` is effective; `overrides` is `{ granted, revoked }`.
+- `POST  /api/users` — `{ username, password, roleId, displayName? }` → `{ user }`. Password 8–200 chars.
+- `PATCH /api/users/:id` — `{ displayName?, roleId?, active? }` → `{ user }`. Deactivating signs the
+  user out; changing the role clears their overrides.
+- `PUT   /api/users/:id/permissions` — `{ granted, revoked }` → `{ user }`. Replaces the person's
+  overrides; entries matching the role anyway are dropped. Not on yourself or an Owner, and a
+  non-Owner may only change permissions they hold.
+- `POST  /api/users/:id/password` — `{ password }`. Signs the user out everywhere
+  (except the caller's own browser, when resetting their own).
 
-Both backends are live at the same time:
+Guardrails: nobody changes their own role or deactivates themselves; only an
+Owner may assign the Owner role or edit an Owner's account; there is always
+at least one active Owner.
 
-| Path                  | Backed by         | Notes                                  |
-| --------------------- | ----------------- | -------------------------------------- |
-| `/api/auth/*`         | **Express + Mongo** | Proxied via Next.js rewrites           |
-| `/api/logs`           | **Express + Mongo** | Proxied via Next.js rewrites           |
-| `/api/projects`       | **Express + Mongo** | Proxied via Next.js rewrites           |
-| `/api/admin/*`        | **Express + Mongo** | Proxied via Next.js rewrites           |
-| `/api/legacy/auth/*`  | Google Sheets     | Original Next.js route handlers        |
-| `/api/legacy/logs`    | Google Sheets     | Original Next.js route handlers        |
-| `/api/legacy/projects`| Google Sheets     | Original Next.js route handlers        |
-| `/api/legacy/admin/*` | Google Sheets     | Original Next.js route handlers        |
+### Roles
+- `GET    /api/roles` (`users.manage` or `roles.manage`) —
+  `{ roles: [{ id, name, description, permissions, isOwner, userCount }], permissions: catalogue }`.
+- `POST   /api/roles` (`roles.manage`) — `{ name, description?, permissions? }` → `{ role }`.
+- `PATCH  /api/roles/:id` (`roles.manage`) — `{ name?, description?, permissions? }` → `{ role }`.
+  Unknown permission keys are dropped.
+- `DELETE /api/roles/:id` (`roles.manage`) — `409 role_in_use` while anyone holds it.
 
-How it works:
-- `client/next.config.mjs` rewrites `/api/{auth,logs,projects,admin}/*` to
-  `${EXPRESS_API_URL}/api/...`. From the browser's perspective, calls stay
-  same-origin so cookies and CSRF protections keep working.
-- The Sheets-backed routes were moved to `client/src/app/api/legacy/*` and
-  remain reachable at `/api/legacy/...` for fallback / comparison.
-- Both backends use the **same `SESSION_SECRET`** to sign the
-  `devaicon_session` JWT, so a login from either side gives you a session
-  that the other side also accepts.
+The Owner role can't be edited or deleted, and a non-Owner can't edit the
+role they hold.
+
+### Profile (any signed-in user, acts on themselves)
+- `GET   /api/profile` — `{ user, access: [{ key, group, label, description, source: 'role' | 'personal' }], lastLoginAt, createdAt }`.
+- `PATCH /api/profile` — `{ displayName }` (≤ 60 chars; empty clears it).
+- `POST  /api/profile/password` — `{ currentPassword, newPassword }`. Wrong current passwords are
+  rate-limited per account. Signs out other devices; this browser gets a fresh cookie.
+- `POST  /api/profile/sign-out-others` — same effect without a password change.
+
+## Running with the client
+
+`client/next.config.mjs` rewrites `/api/{auth,logs,projects,admin,preferences,users,roles,profile}/*`
+to `${EXPRESS_API_URL}/api/...`, so calls stay same-origin and cookies keep
+working. The Next proxy checks the session cookie's signature to send
+signed-out visitors to `/login`, which is why both apps need the **same
+`SESSION_SECRET`**.
 
 ### Client env
 
@@ -147,8 +191,6 @@ unset it falls back to `http://localhost:4000`.
 
 ## Notes
 
-- The route shapes match the original Next.js routes — the frontend doesn't
-  need any code changes to switch backends.
 - IDs are Mongo `_id` strings (24-hex), not UUIDs.
 - `approvedAt` is a Date in Mongo but is serialized as ISO string (or `""`) in
   responses, matching the old shape.

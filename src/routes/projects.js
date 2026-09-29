@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
 import { Project } from '../models/Project.js';
-import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { requireAuth, requirePermission } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -21,7 +21,7 @@ router.get('/', requireAuth, async (_req, res) => {
   }
 });
 
-router.post('/', requireAuth, requireAdmin, async (req, res) => {
+router.post('/', requirePermission('projects.manage'), async (req, res) => {
   const name = String(req.body?.name ?? '').trim();
   if (!name) return res.status(400).json({ error: 'name_required' });
   if (name.length > 100) return res.status(400).json({ error: 'name_too_long' });
@@ -41,7 +41,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-router.delete('/', requireAuth, requireAdmin, async (req, res) => {
+router.delete('/', requirePermission('projects.manage'), async (req, res) => {
   const id = req.query.id;
   if (!id || typeof id !== 'string') {
     return res.status(400).json({ error: 'id_required' });

@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { User } from '../models/User.js';
+import { toSessionUser } from '../lib/rbac.js';
 import { createSessionToken } from '../lib/session.js';
 import {
-  SESSION_COOKIE_NAME,
-  SESSION_TTL_SECONDS,
-} from '../constants.js';
+  setSessionCookie,
+  clearSessionCookie,
+} from '../lib/sessionCookie.js';
 import {
   checkRateLimit,
   recordFailure,
@@ -12,7 +13,6 @@ import {
   getClientIp,
 } from '../middleware/rateLimit.js';
 import { requireAuth } from '../middleware/auth.js';
-import { isProd } from '../config/env.js';
 
 const router = Router();
 
@@ -41,7 +41,7 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'invalid_username' });
   }
 
-  const user = await User.findOne({ username });
+  const user = await User.findOne({ username }).populate('roleId');
   if (!user) {
     recordFailure(`login:${ip}`);
     return res.status(401).json({ error: 'invalid_username' });
@@ -53,28 +53,25 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'invalid_password' });
   }
 
-  clearAttempts(`login:${ip}`);
-  const sessionUser = user.toSessionUser();
-  const token = await createSessionToken(sessionUser);
+  // Checked after the password, so a wrong guess can't learn which accounts
+  // are switched off.
+  if (!user.active || !user.roleId) {
+    return res.status(403).json({
+      error: 'account_disabled',
+      message: 'This account has been deactivated. Ask an admin to restore it.',
+    });
+  }
 
-  res.cookie(SESSION_COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: SESSION_TTL_SECONDS * 1000,
-  });
-  res.json({ user: sessionUser });
+  clearAttempts(`login:${ip}`);
+  user.lastLoginAt = new Date();
+  await user.save();
+
+  setSessionCookie(res, await createSessionToken(user));
+  res.json({ user: toSessionUser(user) });
 });
 
 router.post('/logout', (_req, res) => {
-  res.cookie(SESSION_COOKIE_NAME, '', {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 0,
-  });
+  clearSessionCookie(res);
   res.json({ ok: true });
 });
 

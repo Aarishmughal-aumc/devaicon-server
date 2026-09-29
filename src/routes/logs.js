@@ -2,7 +2,11 @@ import { Router } from 'express';
 import mongoose from 'mongoose';
 import { TimeLog } from '../models/TimeLog.js';
 import { Project } from '../models/Project.js';
-import { requireAuth } from '../middleware/auth.js';
+import {
+  can,
+  requirePermission,
+  requireAnyPermission,
+} from '../middleware/auth.js';
 import {
   CATEGORIES,
   HOURS_MAX,
@@ -14,6 +18,15 @@ import { buildLogFilter, parsePagination } from '../lib/logQuery.js';
 import { composeDescription } from '../lib/description.js';
 
 const router = Router();
+
+// Reading everyone's logs needs timelogs.review and reading your own needs
+// timelogs.log; deleting anyone's needs timelogs.delete_any. Each handler
+// checks which case applies, so a reviewer who logs no time still gets in.
+const canReadLogs = requireAnyPermission('timelogs.log', 'timelogs.review');
+const canDeleteLogs = requireAnyPermission(
+  'timelogs.log',
+  'timelogs.delete_any',
+);
 
 function serializeLog(d) {
   return {
@@ -34,20 +47,20 @@ function serializeLog(d) {
   };
 }
 
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', canReadLogs, async (req, res) => {
   const wantAll = req.query.all === '1';
-  if (wantAll && req.user.role !== 'admin') {
+  if (!can(req.user, wantAll ? 'timelogs.review' : 'timelogs.log')) {
     return res.status(403).json({ error: 'forbidden' });
   }
 
   try {
     const filter = buildLogFilter(req.query);
     if (wantAll) {
-      // Admins viewing everything can still narrow to a single user.
+      // Reviewers viewing everything can still narrow to a single user.
       const username = String(req.query.username ?? '').trim().toLowerCase();
       if (username) filter.username = username;
     } else {
-      // Non-admins are always scoped to their own logs.
+      // Everyone else is always scoped to their own logs.
       filter.username = req.user.username;
     }
 
@@ -82,7 +95,7 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requirePermission('timelogs.log'), async (req, res) => {
   const body = req.body ?? {};
   const date = String(body.date ?? '').trim();
   const project = String(body.project ?? '').trim();
@@ -153,7 +166,7 @@ router.post('/', requireAuth, async (req, res) => {
   }
 });
 
-router.delete('/', requireAuth, async (req, res) => {
+router.delete('/', canDeleteLogs, async (req, res) => {
   const id = req.query.id;
   if (!id || typeof id !== 'string') {
     return res.status(400).json({ error: 'id_required' });
@@ -166,7 +179,7 @@ router.delete('/', requireAuth, async (req, res) => {
     const log = await TimeLog.findById(id);
     if (!log) return res.status(404).json({ error: 'not_found' });
 
-    if (req.user.role !== 'admin') {
+    if (!can(req.user, 'timelogs.delete_any')) {
       if (log.username !== req.user.username) {
         return res.status(403).json({ error: 'forbidden' });
       }
@@ -174,7 +187,7 @@ router.delete('/', requireAuth, async (req, res) => {
         return res.status(403).json({
           error: 'log_approved',
           message:
-            'This entry has been approved by an admin and can no longer be edited. Ask an admin to unapprove it first.',
+            'This entry has been approved and can no longer be edited. Ask a reviewer to unapprove it first.',
         });
       }
     }
@@ -188,8 +201,8 @@ router.delete('/', requireAuth, async (req, res) => {
 });
 
 // Multi-select: delete several logs at once.
-// Devs may only delete their own un-approved logs; admins may delete anything.
-router.post('/bulk-delete', requireAuth, async (req, res) => {
+// Without timelogs.delete_any, only your own un-approved logs are removed.
+router.post('/bulk-delete', canDeleteLogs, async (req, res) => {
   const body = req.body ?? {};
   const ids = Array.isArray(body.ids)
     ? body.ids.filter((x) => typeof x === 'string')
@@ -205,7 +218,7 @@ router.post('/bulk-delete', requireAuth, async (req, res) => {
 
   try {
     const filter =
-      req.user.role === 'admin'
+      can(req.user, 'timelogs.delete_any')
         ? { _id: { $in: validIds } }
         : { _id: { $in: validIds }, username: req.user.username, approvedAt: null };
 
