@@ -21,6 +21,10 @@ export const SESSION_COOKIE_NAME = 'devaicon_session';
 export const SESSION_TTL_HOURS = 12;
 export const SESSION_TTL_SECONDS = SESSION_TTL_HOURS * 60 * 60;
 
+export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_MAX_LENGTH = 200;
+export const DISPLAY_NAME_MAX_LENGTH = 60;
+
 export const HOURS_MAX = 3;
 export const DESCRIPTION_MIN_LENGTH = 10;
 export const DESCRIPTION_MAX_LENGTH = 1000;

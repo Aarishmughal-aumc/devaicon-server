@@ -11,6 +11,16 @@ import logsRoutes from "./routes/logs.js";
 import projectsRoutes from "./routes/projects.js";
 import adminRoutes from "./routes/admin.js";
 import preferencesRoutes from "./routes/preferences.js";
+import usersRoutes from "./routes/users.js";
+import rolesRoutes from "./routes/roles.js";
+import profileRoutes from "./routes/profile.js";
+import postsRoutes from "./routes/posts.js";
+import publicRoutes from "./routes/public.js";
+import {
+  authorsRouter,
+  ctasRouter,
+  categoriesRouter,
+} from "./routes/library.js";
 
 export function createApp() {
   const app = express();
@@ -24,6 +34,8 @@ export function createApp() {
     }),
   );
 
+  // Post bodies are whole documents; everything else stays small.
+  app.use("/api/posts", express.json({ limit: "2mb" }));
   app.use(express.json({ limit: "100kb" }));
   app.use(cookieParser());
 
@@ -37,6 +49,14 @@ export function createApp() {
   app.use("/api/projects", projectsRoutes);
   app.use("/api/admin", adminRoutes);
   app.use("/api/preferences", preferencesRoutes);
+  app.use("/api/users", usersRoutes);
+  app.use("/api/roles", rolesRoutes);
+  app.use("/api/profile", profileRoutes);
+  app.use("/api/posts", postsRoutes);
+  app.use("/api/authors", authorsRouter);
+  app.use("/api/ctas", ctasRouter);
+  app.use("/api/categories", categoriesRouter);
+  app.use("/api/public", publicRoutes);
 
   app.use((_req, res) => res.status(404).json({ error: "not_found" }));
 
