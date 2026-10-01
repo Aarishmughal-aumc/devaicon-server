@@ -174,7 +174,9 @@ role they hold.
 Admin — any of `posts.write`, `posts.publish`, `posts.delete` to read:
 - `GET    /api/posts` (`?status=draft|scheduled|published&q=`) — summaries.
 - `GET    /api/posts/:id` — the editor's copy; `GET /api/posts/:id/preview` — the reader's view, drafts included.
-- `POST   /api/posts` (`posts.write`) — `{ title }` → a new draft with a unique slug.
+- `POST   /api/posts` (`posts.write`) — `{ title }` → a new draft with a unique slug. May also carry any
+  field `PATCH` accepts (except `featured`), checked the same way; the dashboard's post import uses this so
+  a file is refused whole rather than half-saved. A `slug` given here is made unique instead of refused.
 - `PATCH  /api/posts/:id` (`posts.write`, plus `posts.publish` if the post is live or scheduled) —
   any of `title, subtitle, slug, categoryId, tags, authorId, heroImage, body, faqs, closingCtaId, toc, seo, featured`.
   A slug change on a post that has ever been public keeps the old slug as a 301 redirect. At most 3 posts featured.

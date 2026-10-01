@@ -101,44 +101,17 @@ router.get('/:id/preview', async (req, res) => {
   res.json({ post: serializePublicPost(post, ctas) });
 });
 
-router.post('/', requirePermission('posts.write'), async (req, res) => {
-  const title = str(req.body?.title, 200) || 'Untitled post';
-  try {
-    const post = await Post.create({
-      title,
-      slug: await uniqueSlug(slugify(title)),
-      createdBy: req.user.username,
-      updatedBy: req.user.username,
-    });
-    res.status(201).json({ post: serializeAdminPost(post) });
-  } catch (e) {
-    console.error('POST /posts failed:', e?.message ?? e);
-    res.status(500).json({ error: 'db_error' });
-  }
-});
+const invalid = (message) => ({ status: 400, error: 'invalid', message });
 
 /**
- * Save editor fields. Any subset may be sent. Editing a post that is live or
- * scheduled changes what readers see, so it needs posts.publish as well.
+ * Copy editor fields from a request body onto a post; any subset may be sent.
+ * Returns the problem to answer with when one is refused, or null. Nothing is
+ * saved here, so a refused field leaves the stored post as it was.
  */
-router.patch('/:id', requirePermission('posts.write'), async (req, res) => {
-  const body = req.body ?? {};
-  const post = await loadPost(req, res);
-  if (!post) return;
-
-  if (post.status !== 'draft' && !can(req.user, 'posts.publish')) {
-    return res.status(403).json({
-      error: 'needs_publish',
-      message: 'This post is live or scheduled. Only someone who can publish may edit it.',
-    });
-  }
-
-  const bad = (message) => res.status(400).json({ error: 'invalid', message });
-  const oldSlug = post.slug;
-
+async function applyFields(post, body) {
   if (body.title !== undefined) {
     const title = str(body.title, 200);
-    if (!title) return bad('The title is required.');
+    if (!title) return invalid('The title is required.');
     post.title = title;
   }
   if (body.subtitle !== undefined) post.subtitle = str(body.subtitle, 600);
@@ -146,13 +119,10 @@ router.patch('/:id', requirePermission('posts.write'), async (req, res) => {
   if (body.slug !== undefined) {
     const slug = String(body.slug).trim().toLowerCase();
     const problem = slugProblem(slug);
-    if (problem) return bad(problem);
+    if (problem) return invalid(problem);
     if (slug !== post.slug) {
       if (await slugTaken(slug, post._id)) {
-        return res.status(409).json({
-          error: 'slug_taken',
-          message: 'Another post already uses (or used) that URL.',
-        });
+        return { status: 409, error: 'slug_taken', message: 'Another post already uses (or used) that URL.' };
       }
       // Once a URL has been public, keep it working as a redirect.
       if (post.publishedAt && !post.previousSlugs.includes(post.slug)) {
@@ -165,37 +135,37 @@ router.patch('/:id', requirePermission('posts.write'), async (req, res) => {
 
   if (body.categoryId !== undefined) {
     if (body.categoryId && !(await refExists(Category, body.categoryId))) {
-      return bad('That category no longer exists.');
+      return invalid('That category no longer exists.');
     }
     post.categoryId = body.categoryId || null;
   }
   if (body.authorId !== undefined) {
     if (body.authorId && !(await refExists(Author, body.authorId))) {
-      return bad('That author no longer exists.');
+      return invalid('That author no longer exists.');
     }
     post.authorId = body.authorId || null;
   }
   if (body.closingCtaId !== undefined) {
     if (body.closingCtaId && !(await refExists(Cta, body.closingCtaId))) {
-      return bad('That call to action no longer exists.');
+      return invalid('That call to action no longer exists.');
     }
     post.closingCtaId = body.closingCtaId || null;
   }
 
   if (body.tags !== undefined) {
-    if (!Array.isArray(body.tags)) return bad('Tags must be a list.');
+    if (!Array.isArray(body.tags)) return invalid('Tags must be a list.');
     post.tags = [...new Set(body.tags.map((t) => str(t, 40)).filter(Boolean))].slice(0, 20);
   }
 
   if (body.heroImage !== undefined) {
     const url = safeUrl(body.heroImage?.url);
-    if (url === null) return bad('The hero image address is not a valid link.');
+    if (url === null) return invalid('The hero image address is not a valid link.');
     post.heroImage = { url, alt: str(body.heroImage?.alt, 200) };
   }
 
   if (body.body !== undefined) {
     const problem = docProblem(body.body);
-    if (problem) return bad(problem);
+    if (problem) return invalid(problem);
     post.body = body.body;
     post.markModified('body');
     post.inlineCtaIds = inlineCtaIds(body.body);
@@ -204,7 +174,7 @@ router.patch('/:id', requirePermission('posts.write'), async (req, res) => {
 
   if (body.faqs !== undefined) {
     if (!Array.isArray(body.faqs) || body.faqs.length > 30) {
-      return bad('FAQs must be a list of at most 30.');
+      return invalid('FAQs must be a list of at most 30.');
     }
     post.faqs = body.faqs
       .map((f) => ({ question: str(f?.question, 300), answer: str(f?.answer, 2000) }))
@@ -228,8 +198,8 @@ router.patch('/:id', requirePermission('posts.write'), async (req, res) => {
     const s = body.seo ?? {};
     const canonicalUrl = safeUrl(s.canonicalUrl);
     const ogImage = safeUrl(s.ogImage);
-    if (canonicalUrl === null) return bad('The canonical URL is not a valid link.');
-    if (ogImage === null) return bad('The social image address is not a valid link.');
+    if (canonicalUrl === null) return invalid('The canonical URL is not a valid link.');
+    if (ogImage === null) return invalid('The social image address is not a valid link.');
     post.seo = {
       metaTitle: str(s.metaTitle, 120),
       metaDescription: str(s.metaDescription, 320),
@@ -247,14 +217,64 @@ router.patch('/:id', requirePermission('posts.write'), async (req, res) => {
     if (featured && !post.featured) {
       const others = await Post.countDocuments({ featured: true, _id: { $ne: post._id } });
       if (others >= MAX_FEATURED) {
-        return res.status(409).json({
+        return {
+          status: 409,
           error: 'too_many_featured',
           message: `Only ${MAX_FEATURED} posts can be featured. Un-feature one first.`,
-        });
+        };
       }
     }
     post.featured = featured;
   }
+
+  return null;
+}
+
+/**
+ * Start a post. A title alone starts an empty draft; an imported post file
+ * sends the rest of its fields too, checked exactly as a save checks them.
+ * The URL is taken from `slug` or the title and made unique rather than
+ * refused, and featuring is left to the editor on the site.
+ */
+router.post('/', requirePermission('posts.write'), async (req, res) => {
+  const { title: rawTitle, slug: rawSlug, featured: _featured, ...fields } = req.body ?? {};
+  const title = str(rawTitle, 200) || 'Untitled post';
+  const base = [slugify(rawSlug), slugify(title)].find((s) => !slugProblem(s)) ?? 'untitled-post';
+  try {
+    const post = new Post({
+      title,
+      slug: await uniqueSlug(base),
+      createdBy: req.user.username,
+      updatedBy: req.user.username,
+    });
+    const problem = await applyFields(post, fields);
+    if (problem) return res.status(problem.status).json({ error: problem.error, message: problem.message });
+    await post.save();
+    res.status(201).json({ post: serializeAdminPost(post) });
+  } catch (e) {
+    console.error('POST /posts failed:', e?.message ?? e);
+    res.status(500).json({ error: 'db_error' });
+  }
+});
+
+/**
+ * Save editor fields. Any subset may be sent. Editing a post that is live or
+ * scheduled changes what readers see, so it needs posts.publish as well.
+ */
+router.patch('/:id', requirePermission('posts.write'), async (req, res) => {
+  const post = await loadPost(req, res);
+  if (!post) return;
+
+  if (post.status !== 'draft' && !can(req.user, 'posts.publish')) {
+    return res.status(403).json({
+      error: 'needs_publish',
+      message: 'This post is live or scheduled. Only someone who can publish may edit it.',
+    });
+  }
+
+  const oldSlug = post.slug;
+  const problem = await applyFields(post, req.body ?? {});
+  if (problem) return res.status(problem.status).json({ error: problem.error, message: problem.message });
 
   post.updatedBy = req.user.username;
   try {
