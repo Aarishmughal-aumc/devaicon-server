@@ -6,23 +6,25 @@ function getSecret() {
   return new TextEncoder().encode(env.sessionSecret);
 }
 
+// The token names the user and nothing else about them. Role and permissions
+// are read from the database on every request, so a change to either takes
+// effect immediately rather than when the token expires.
 export async function createSessionToken(user) {
-  return new SignJWT({ username: user.username, role: user.role })
+  return new SignJWT({ v: user.sessionVersion ?? 0 })
     .setProtectedHeader({ alg: 'HS256' })
+    .setSubject(user._id.toString())
     .setIssuedAt()
     .setExpirationTime(`${SESSION_TTL_HOURS}h`)
     .sign(getSecret());
 }
 
+/** Returns `{ userId, version }`, or null for a missing, bad or old-format token. */
 export async function readSessionFromToken(token) {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    if (
-      typeof payload.username === 'string' &&
-      (payload.role === 'dev' || payload.role === 'admin')
-    ) {
-      return { username: payload.username, role: payload.role };
+    if (typeof payload.sub === 'string' && typeof payload.v === 'number') {
+      return { userId: payload.sub, version: payload.v };
     }
     return null;
   } catch {

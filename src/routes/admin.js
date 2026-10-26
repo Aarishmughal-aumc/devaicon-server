@@ -2,13 +2,13 @@ import { Router } from 'express';
 import mongoose from 'mongoose';
 import { TimeLog } from '../models/TimeLog.js';
 import { Project } from '../models/Project.js';
-import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { requirePermission } from '../middleware/auth.js';
 import { toCSV } from '../lib/csv.js';
 import { FLAG_REASON_MAX_LENGTH } from '../constants.js';
 
 const router = Router();
 
-router.post('/approve', requireAuth, requireAdmin, async (req, res) => {
+router.post('/approve', requirePermission('timelogs.review'), async (req, res) => {
   const body = req.body ?? {};
   const ids = Array.isArray(body.ids)
     ? body.ids.filter((x) => typeof x === 'string')
@@ -37,7 +37,7 @@ router.post('/approve', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-router.post('/flag', requireAuth, requireAdmin, async (req, res) => {
+router.post('/flag', requirePermission('timelogs.review'), async (req, res) => {
   const body = req.body ?? {};
   const ids = Array.isArray(body.ids)
     ? body.ids.filter((x) => typeof x === 'string')
@@ -83,7 +83,7 @@ router.post('/flag', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-router.get('/export', requireAuth, requireAdmin, async (_req, res) => {
+router.get('/export', requirePermission('timelogs.export'), async (_req, res) => {
   try {
     const [logs, projects] = await Promise.all([
       TimeLog.find().sort({ loggedAt: 1 }).lean(),
