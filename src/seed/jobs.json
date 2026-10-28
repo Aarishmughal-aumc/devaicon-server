@@ -1,0 +1,298 @@
+{
+  "jobs": [
+    {
+      "title": "Senior Full Stack Developer",
+      "slug": "senior-full-stack-developer",
+      "department": "Engineering",
+      "location": "",
+      "workplace": "Remote",
+      "employmentType": "Full-time",
+      "experience": "5+ years",
+      "summary": "Build scalable web applications using modern frameworks and cloud technologies.",
+      "description": "We are seeking an experienced Senior Full Stack Developer to join our engineering team. You will work on cutting-edge projects, building scalable web applications that serve millions of users. This role offers the opportunity to work with the latest technologies and contribute to architectural decisions.",
+      "responsibilities": [
+        "Design, develop, and maintain scalable web applications using React, Node.js, and TypeScript",
+        "Collaborate with cross-functional teams to define and implement new features",
+        "Write clean, maintainable, and well-documented code following best practices",
+        "Participate in code reviews and provide constructive feedback to team members",
+        "Optimize application performance and ensure high availability",
+        "Implement and maintain CI/CD pipelines for automated testing and deployment",
+        "Mentor junior developers and contribute to team knowledge sharing",
+        "Stay up-to-date with emerging technologies and industry trends"
+      ],
+      "requirements": [
+        "5+ years of professional software development experience",
+        "Strong proficiency in React, Node.js, and TypeScript",
+        "Experience with cloud platforms (Azure or AWS)",
+        "Solid understanding of RESTful APIs and microservices architecture",
+        "Experience with databases (SQL and NoSQL)",
+        "Familiarity with Docker and Kubernetes",
+        "Strong problem-solving skills and attention to detail",
+        "Excellent communication and collaboration abilities"
+      ],
+      "niceToHave": [
+        "Experience with Next.js and server-side rendering",
+        "Knowledge of GraphQL",
+        "Experience with Azure DevOps or similar CI/CD tools",
+        "Understanding of security best practices",
+        "Contributions to open-source projects",
+        "Experience with Agile/Scrum methodologies"
+      ],
+      "benefits": [
+        "Competitive salary and performance bonuses",
+        "Comprehensive health, dental, and vision insurance",
+        "401(k) matching",
+        "Flexible remote work arrangements",
+        "Professional development budget for courses and certifications",
+        "Annual conference attendance",
+        "Latest technology and equipment",
+        "Generous PTO and paid holidays"
+      ]
+    },
+    {
+      "title": "AI/ML Engineer",
+      "slug": "ai-ml-engineer",
+      "department": "Data Science",
+      "location": "",
+      "workplace": "Hybrid",
+      "employmentType": "Full-time",
+      "experience": "3+ years",
+      "summary": "Develop and deploy machine learning models to solve complex business problems.",
+      "description": "Join our Data Science team as an AI/ML Engineer where you'll develop and deploy state-of-the-art machine learning models. You'll work on challenging problems across various domains including NLP, computer vision, and predictive analytics, directly impacting our clients' business outcomes.",
+      "responsibilities": [
+        "Design, develop, and deploy machine learning models for production environments",
+        "Conduct exploratory data analysis and feature engineering",
+        "Implement and optimize deep learning algorithms using TensorFlow and PyTorch",
+        "Build and maintain ML pipelines for model training and deployment",
+        "Collaborate with data engineers to ensure data quality and availability",
+        "Monitor model performance and implement improvements",
+        "Research and implement cutting-edge ML techniques and algorithms",
+        "Document models, processes, and best practices"
+      ],
+      "requirements": [
+        "3+ years of experience in machine learning and AI",
+        "Strong proficiency in Python and ML libraries (TensorFlow, PyTorch, scikit-learn)",
+        "Experience with NLP and/or Computer Vision",
+        "Solid understanding of supervised and unsupervised learning algorithms",
+        "Experience deploying models in production environments",
+        "Strong mathematical and statistical background",
+        "Ability to work with large-scale datasets",
+        "Excellent problem-solving and analytical skills"
+      ],
+      "niceToHave": [
+        "PhD or Master's degree in Computer Science, Statistics, or related field",
+        "Experience with MLOps and model deployment platforms",
+        "Knowledge of transformer architectures and LLMs",
+        "Experience with Azure ML or AWS SageMaker",
+        "Published research papers or conference presentations",
+        "Experience with reinforcement learning"
+      ],
+      "benefits": [
+        "Competitive compensation package with equity options",
+        "Comprehensive healthcare coverage",
+        "Hybrid work model with flexible hours",
+        "Access to GPU clusters and cloud computing resources",
+        "Conference and research paper publication support",
+        "Continuous learning and development opportunities",
+        "Collaborative and innovative work environment",
+        "Wellness programs and mental health support"
+      ]
+    },
+    {
+      "title": "Cloud Solutions Architect",
+      "slug": "cloud-solutions-architect",
+      "department": "Infrastructure",
+      "location": "",
+      "workplace": "On-site",
+      "employmentType": "Full-time",
+      "experience": "6+ years",
+      "summary": "Design and implement cloud infrastructure solutions for enterprise clients.",
+      "description": "As a Cloud Solutions Architect, you'll be responsible for designing and implementing robust, scalable cloud infrastructure solutions for our enterprise clients. You'll work closely with stakeholders to understand business requirements and translate them into technical architectures using Azure and AWS.",
+      "responsibilities": [
+        "Design and implement cloud infrastructure solutions on Azure and AWS",
+        "Lead cloud migration projects for enterprise clients",
+        "Develop architecture patterns and best practices for cloud deployment",
+        "Ensure security, compliance, and disaster recovery requirements are met",
+        "Optimize cloud costs and resource utilization",
+        "Provide technical leadership and mentorship to engineering teams",
+        "Collaborate with clients to understand business requirements",
+        "Create technical documentation and architecture diagrams"
+      ],
+      "requirements": [
+        "Azure and/or AWS certification (Solutions Architect or equivalent)",
+        "6+ years of experience in cloud infrastructure and architecture",
+        "Deep knowledge of Azure/AWS services and capabilities",
+        "Experience with Infrastructure as Code (Terraform, ARM templates, CloudFormation)",
+        "Strong understanding of networking, security, and identity management",
+        "Experience with containerization and orchestration (Docker, Kubernetes)",
+        "DevOps expertise and CI/CD pipeline implementation",
+        "Excellent client-facing and communication skills"
+      ],
+      "niceToHave": [
+        "Multiple cloud certifications (Azure, AWS, GCP)",
+        "Experience with hybrid cloud and multi-cloud architectures",
+        "Knowledge of FinOps and cloud cost optimization",
+        "Experience with Azure Arc or AWS Outposts",
+        "Background in enterprise security and compliance frameworks",
+        "Experience with serverless architectures"
+      ],
+      "benefits": [
+        "Highly competitive salary and annual bonuses",
+        "Comprehensive benefits package",
+        "Certification and training budget",
+        "Latest technology and tools",
+        "Opportunity to work with Fortune 500 clients",
+        "Career advancement opportunities",
+        "Relocation assistance if needed",
+        "Regular team building and social events"
+      ]
+    },
+    {
+      "title": "Data Engineer",
+      "slug": "data-engineer",
+      "department": "Data Science",
+      "location": "",
+      "workplace": "Remote",
+      "employmentType": "Full-time",
+      "experience": "4+ years",
+      "summary": "Build and maintain data pipelines and analytics infrastructure.",
+      "description": "We're looking for a skilled Data Engineer to build and maintain our data infrastructure. You'll design and implement scalable data pipelines, ensure data quality, and enable our data science and analytics teams to derive insights from large-scale datasets.",
+      "responsibilities": [
+        "Design, build, and maintain robust data pipelines using ETL/ELT processes",
+        "Develop and optimize data warehouse solutions",
+        "Implement data quality checks and monitoring systems",
+        "Work with big data technologies (Spark, Hadoop, Kafka)",
+        "Collaborate with data scientists and analysts to support their data needs",
+        "Optimize query performance and data storage",
+        "Implement data security and privacy measures",
+        "Create and maintain technical documentation"
+      ],
+      "requirements": [
+        "4+ years of experience in data engineering",
+        "Strong proficiency in SQL and Python",
+        "Experience with Apache Spark and distributed computing",
+        "Knowledge of data warehousing concepts and dimensional modeling",
+        "Experience with ETL/ELT tools and frameworks",
+        "Familiarity with cloud data platforms (Azure Synapse, AWS Redshift, Snowflake)",
+        "Understanding of data governance and data quality principles",
+        "Strong analytical and problem-solving skills"
+      ],
+      "niceToHave": [
+        "Experience with real-time data streaming (Kafka, Event Hubs)",
+        "Knowledge of data lake architectures",
+        "Experience with dbt or similar data transformation tools",
+        "Familiarity with DataOps practices",
+        "Experience with Databricks",
+        "Knowledge of data catalog tools"
+      ],
+      "benefits": [
+        "Competitive salary with performance bonuses",
+        "100% remote work option",
+        "Health and wellness benefits",
+        "Home office setup allowance",
+        "Professional development opportunities",
+        "Flexible working hours",
+        "Annual company retreats",
+        "Employee stock purchase plan"
+      ]
+    },
+    {
+      "title": "Product Manager",
+      "slug": "product-manager",
+      "department": "Product",
+      "location": "",
+      "workplace": "Hybrid",
+      "employmentType": "Full-time",
+      "experience": "5+ years",
+      "summary": "Lead product strategy and work with cross-functional teams to deliver impactful solutions.",
+      "description": "As a Product Manager at Devaicon, you'll drive product strategy and execution for our enterprise solutions. You'll work closely with engineering, design, and business teams to deliver products that solve real customer problems and drive business growth.",
+      "responsibilities": [
+        "Define and communicate product vision and strategy",
+        "Conduct market research and competitive analysis",
+        "Gather and prioritize product requirements from stakeholders",
+        "Create and maintain product roadmaps",
+        "Write detailed user stories and acceptance criteria",
+        "Work with UX/UI designers to create optimal user experiences",
+        "Collaborate with engineering teams throughout the development lifecycle",
+        "Analyze product metrics and user feedback to inform decisions"
+      ],
+      "requirements": [
+        "5+ years of product management experience",
+        "Proven track record of successfully launching products",
+        "Strong understanding of Agile/Scrum methodologies",
+        "Excellent stakeholder management and communication skills",
+        "Data-driven decision-making approach",
+        "Experience with product analytics tools",
+        "Technical background or ability to work closely with engineering teams",
+        "Strong leadership and organizational skills"
+      ],
+      "niceToHave": [
+        "MBA or relevant advanced degree",
+        "Experience in enterprise SaaS products",
+        "Background in AI/ML products",
+        "Certification in product management (CSPO, CPM)",
+        "Experience with design thinking workshops",
+        "Knowledge of B2B sales processes"
+      ],
+      "benefits": [
+        "Competitive compensation with equity",
+        "Comprehensive healthcare benefits",
+        "Hybrid work flexibility",
+        "Professional development and training",
+        "Opportunity to shape product direction",
+        "Collaborative team environment",
+        "Regular team outings and events",
+        "Parental leave and family support"
+      ]
+    },
+    {
+      "title": "Frontend Developer",
+      "slug": "frontend-developer",
+      "department": "Engineering",
+      "location": "",
+      "workplace": "Remote",
+      "employmentType": "Full-time",
+      "experience": "3+ years",
+      "summary": "Create beautiful, responsive user interfaces using modern frontend technologies.",
+      "description": "Join our frontend team to build beautiful, performant user interfaces that delight users. You'll work with React, Next.js, and modern CSS frameworks to create responsive, accessible web applications.",
+      "responsibilities": [
+        "Develop responsive and accessible user interfaces using React and Next.js",
+        "Implement pixel-perfect designs from Figma mockups",
+        "Optimize application performance and loading times",
+        "Write reusable, maintainable component libraries",
+        "Collaborate with designers and backend developers",
+        "Implement automated testing for UI components",
+        "Ensure cross-browser and cross-device compatibility",
+        "Participate in design reviews and provide technical input"
+      ],
+      "requirements": [
+        "3+ years of frontend development experience",
+        "Strong proficiency in React and Next.js",
+        "Expert knowledge of HTML5, CSS3, and JavaScript (ES6+)",
+        "Experience with Tailwind CSS or similar utility-first frameworks",
+        "Understanding of responsive design and mobile-first development",
+        "Familiarity with UI/UX principles and best practices",
+        "Experience with version control (Git)",
+        "Strong attention to detail and design sensibility"
+      ],
+      "niceToHave": [
+        "Experience with TypeScript",
+        "Knowledge of animation libraries (Framer Motion, GSAP)",
+        "Experience with state management (Redux, Zustand)",
+        "Familiarity with testing frameworks (Jest, React Testing Library)",
+        "Understanding of web accessibility (WCAG)",
+        "Experience with design systems"
+      ],
+      "benefits": [
+        "Competitive salary and bonuses",
+        "Fully remote position",
+        "Health and dental insurance",
+        "Home office equipment stipend",
+        "Professional development budget",
+        "Flexible schedule",
+        "Paid time off and holidays",
+        "Mental health and wellness programs"
+      ]
+    }
+  ]
+}

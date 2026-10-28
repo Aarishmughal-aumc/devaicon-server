@@ -3,21 +3,21 @@ const MAX_ATTEMPTS = 20;
 
 const store = new Map();
 
-export function checkRateLimit(key) {
+export function checkRateLimit(key, max = MAX_ATTEMPTS) {
   const now = Date.now();
   const entry = store.get(key);
 
   if (!entry || now - entry.firstAttempt > WINDOW_MS) {
-    return { allowed: true, remaining: MAX_ATTEMPTS };
+    return { allowed: true, remaining: max };
   }
-  if (entry.count >= MAX_ATTEMPTS) {
+  if (entry.count >= max) {
     const retryAfterSeconds = Math.max(
       1,
       Math.ceil((entry.firstAttempt + WINDOW_MS - now) / 1000),
     );
     return { allowed: false, retryAfterSeconds };
   }
-  return { allowed: true, remaining: MAX_ATTEMPTS - entry.count };
+  return { allowed: true, remaining: max - entry.count };
 }
 
 export function recordFailure(key) {

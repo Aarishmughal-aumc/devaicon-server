@@ -4,6 +4,7 @@ import { createApp } from './app.js';
 import { ensureRbac } from './lib/rbac.js';
 import { ensureBootstrapAdmin } from './lib/bootstrapAdmin.js';
 import { ensureBlogSeed } from './lib/blogSeed.js';
+import { ensureJobsSeed } from './lib/jobsSeed.js';
 import { startScheduler } from './lib/scheduler.js';
 
 async function main() {
@@ -11,6 +12,7 @@ async function main() {
   await ensureRbac();
   await ensureBootstrapAdmin();
   await ensureBlogSeed();
+  await ensureJobsSeed();
   const app = createApp();
   app.listen(env.port, () => {
     console.log(`[server] listening on http://localhost:${env.port}`);

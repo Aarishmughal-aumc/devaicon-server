@@ -87,8 +87,11 @@ let warnedNoRevalidate = false;
  * Ask the Next.js site to rebuild these paths now, instead of waiting for its
  * cache to expire. Best effort: a failure only means the change appears a few
  * minutes later, so it never fails the request that caused it.
+ *
+ * `tags` names the site's data caches to expire first: "insights" for posts,
+ * "careers" for job postings.
  */
-export async function revalidate(paths) {
+export async function revalidate(paths, tags = ['insights']) {
   if (!env.siteUrl || !env.revalidateSecret) {
     if (!warnedNoRevalidate) {
       console.warn('[blog] SITE_URL / REVALIDATE_SECRET not set; site pages refresh on their own timer.');
@@ -103,7 +106,7 @@ export async function revalidate(paths) {
         'Content-Type': 'application/json',
         'x-revalidate-secret': env.revalidateSecret,
       },
-      body: JSON.stringify({ paths: [...new Set(paths)] }),
+      body: JSON.stringify({ paths: [...new Set(paths)], tags }),
       signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) console.warn(`[blog] revalidate returned ${res.status}`);

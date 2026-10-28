@@ -200,6 +200,40 @@ On first start the four posts that used to be hard-coded in the client are impor
 every minute. After any change that affects live content, the server asks the site to refresh the affected
 pages (`SITE_URL` + `REVALIDATE_SECRET`); without those set, pages refresh on their 5-minute cache timer.
 
+### Job portal (careers)
+
+A role is `draft`, `published` (listed, taking applications) or `closed` (page stays up, says it's
+filled, refuses applications).
+
+Postings — readable with either `careers.manage` or `careers.applications`, writable with `careers.manage`:
+- `GET    /api/jobs` — summaries, each with `applications: { total, new }`. `GET /api/jobs/:id` — full posting.
+- `POST   /api/jobs` — any `PATCH` fields → a new draft with a unique slug from `slug` or the title.
+- `PATCH  /api/jobs/:id` — any of `title, slug, department, location, workplace (On-site|Hybrid|Remote),
+  employmentType (Full-time|Part-time|Contract|Internship), experience, summary, description,
+  responsibilities[], requirements[], niceToHave[], benefits[]`. The slug is locked once published.
+- `POST   /api/jobs/:id/publish` — refused with `problems[]` until it has a title, summary, description,
+  one responsibility and one requirement. `POST /:id/close`, `POST /:id/unpublish` (back to draft).
+- `DELETE /api/jobs/:id` — its applications are kept (they carry the role's title).
+
+Applications — everything needs `careers.applications`:
+- `GET    /api/applications` (`?jobId=<id>|general&status=&q=`) → `{ applications, counts }`, counts per status.
+- `GET    /api/applications/:id`; `GET /api/applications/:id/resume` — always a download, never inline.
+- `PATCH  /api/applications/:id` — `{ status?: new|reviewing|shortlisted|rejected|hired, notes? }`.
+- `DELETE /api/applications/:id`.
+
+Public, no session:
+- `GET  /api/public/jobs` — published roles. `GET /api/public/jobs/:slug` — published or closed.
+- `POST /api/public/applications` — `{ jobSlug? | areaOfInterest, firstName, lastName, email, phone,
+  linkedIn?, portfolio?, coverLetter, resume: { name, data (base64) } }`. 5 per IP per 15 min. The résumé
+  must be a real PDF/DOC/DOCX by its first bytes, 5 MB at most, and is stored in Mongo, not public storage.
+  `coverLetter` is required for a role and optional for a general résumé.
+
+On first start the six roles that used to be hard-coded in the client are imported from
+`src/seed/jobs.json` as **drafts**, once, under their old URLs.
+
+The default Admin role on a new database gets both permissions. Existing databases keep their roles as
+they are, so grant them from Dashboard → Roles.
+
 ## Running with the client
 
 `client/next.config.mjs` rewrites `/api/{auth,logs,projects,admin,preferences,users,roles,profile,posts,authors,ctas,categories}/*`

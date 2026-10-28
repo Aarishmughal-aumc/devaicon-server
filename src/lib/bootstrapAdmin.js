@@ -29,7 +29,12 @@ export async function ensureBootstrapAdmin() {
 
   const owner = await Role.findOne({ isOwner: true });
   if (!owner) return; // ensureRbac() runs first and creates it
-  if (await User.exists({ roleId: owner._id, active: true })) return;
+  const owners = await User.find({ roleId: owner._id, active: true }, { username: 1 });
+  if (owners.length > 0) {
+    const names = owners.map((u) => u.username).join(', ');
+    console.log(`[bootstrap] skipped: Owner already exists (${names}); remove BOOTSTRAP_ADMIN`);
+    return;
+  }
 
   const passwordHash = await User.hashPassword(password);
   const existing = await User.findOne({ username });

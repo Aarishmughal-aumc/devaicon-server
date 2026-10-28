@@ -63,6 +63,20 @@ export const PERMISSIONS = [
     description: 'Add and edit authors, calls to action and categories.',
   },
   {
+    key: 'careers.manage',
+    group: 'Job portal',
+    label: 'Manage job postings',
+    description:
+      'Create and edit roles for the careers page, and publish, close or delete them.',
+  },
+  {
+    key: 'careers.applications',
+    group: 'Job portal',
+    label: 'Review applications',
+    description:
+      'Read the applications people send from the careers page, download their résumés and track each one.',
+  },
+  {
     key: 'users.manage',
     group: 'Team',
     label: 'Manage users',
