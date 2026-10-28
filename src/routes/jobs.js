@@ -57,13 +57,15 @@ async function applicationCounts() {
   return new Map(rows.map((r) => [String(r._id), { total: r.total, new: r.new }]));
 }
 
-router.get('/', async (_req, res) => {
+// `?full=1` sends whole postings rather than summaries, for exporting.
+router.get('/', async (req, res) => {
+  const serialize = req.query.full === '1' ? serializeAdminJob : serializeJobSummary;
   try {
     const [jobs, counts] = await Promise.all([
       Job.find().sort({ updatedAt: -1 }).lean(),
       applicationCounts(),
     ]);
-    res.json({ jobs: jobs.map((j) => serializeJobSummary(j, counts.get(String(j._id)))) });
+    res.json({ jobs: jobs.map((j) => serialize(j, counts.get(String(j._id)))) });
   } catch (e) {
     console.error('GET /jobs failed:', e?.message ?? e);
     res.status(500).json({ error: 'db_error' });

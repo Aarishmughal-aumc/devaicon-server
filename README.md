@@ -206,7 +206,8 @@ A role is `draft`, `published` (listed, taking applications) or `closed` (page s
 filled, refuses applications).
 
 Postings — readable with either `careers.manage` or `careers.applications`, writable with `careers.manage`:
-- `GET    /api/jobs` — summaries, each with `applications: { total, new }`. `GET /api/jobs/:id` — full posting.
+- `GET    /api/jobs` — summaries, each with `applications: { total, new }`; `?full=1` sends whole postings
+  (the dashboard's export uses it). `GET /api/jobs/:id` — full posting.
 - `POST   /api/jobs` — any `PATCH` fields → a new draft with a unique slug from `slug` or the title.
 - `PATCH  /api/jobs/:id` — any of `title, slug, department, location, workplace (On-site|Hybrid|Remote),
   employmentType (Full-time|Part-time|Contract|Internship), experience, summary, description,

@@ -96,9 +96,9 @@ export function serializeJobSummary(j, counts = { total: 0, new: 0 }) {
   };
 }
 
-export function serializeAdminJob(j) {
+export function serializeAdminJob(j, counts) {
   return {
-    ...serializeJobSummary(j),
+    ...serializeJobSummary(j, counts),
     experience: j.experience ?? '',
     summary: j.summary ?? '',
     description: j.description ?? '',
