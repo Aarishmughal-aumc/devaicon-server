@@ -3,6 +3,7 @@ import { Post, liveFilter } from '../models/Post.js';
 import { Category } from '../models/Category.js';
 import { Cta } from '../models/Cta.js';
 import { Job } from '../models/Job.js';
+import { ServicePage } from '../models/ServicePage.js';
 import { Application, AREAS_OF_INTEREST } from '../models/Application.js';
 import {
   serializeCategory,
@@ -10,12 +11,13 @@ import {
   serializeSummary,
 } from '../lib/postView.js';
 import { readApplicant, readResume, serializePublicJob } from '../lib/careers.js';
+import { serializePublicServicePage } from '../lib/servicePages.js';
 import { str } from '../lib/fields.js';
 import { checkRateLimit, getClientIp, recordFailure } from '../middleware/rateLimit.js';
 
 /**
- * Content for the public site. No session needed; only live posts and roles
- * are ever returned. The Next.js site calls the reads from the server and
+ * Content for the public site. No session needed; only live posts, roles and
+ * service pages are ever returned. The Next.js site calls the reads from the server and
  * caches the result, so they are not on the hot path of a page view.
  *
  * The one write is an application from the careers page, which the browser
@@ -121,6 +123,29 @@ router.get('/jobs/:slug', async (req, res) => {
     res.json({ job: serializePublicJob(job, { full: true }) });
   } catch (e) {
     console.error('GET /public/jobs/:slug failed:', e?.message ?? e);
+    res.status(500).json({ error: 'db_error' });
+  }
+});
+
+// Live service pages, newest first: what the sitemap and llms.txt list.
+router.get('/service-pages', async (_req, res) => {
+  try {
+    const pages = await ServicePage.find({ status: 'published' }).select('-blocks').sort({ publishedAt: -1 }).lean();
+    res.json({ pages: pages.map((p) => serializePublicServicePage(p)) });
+  } catch (e) {
+    console.error('GET /public/service-pages failed:', e?.message ?? e);
+    res.status(500).json({ error: 'db_error' });
+  }
+});
+
+router.get('/service-pages/:slug', async (req, res) => {
+  const slug = String(req.params.slug).toLowerCase();
+  try {
+    const page = await ServicePage.findOne({ slug, status: 'published' }).lean();
+    if (!page) return res.status(404).json({ error: 'not_found' });
+    res.json({ page: serializePublicServicePage(page, { full: true }) });
+  } catch (e) {
+    console.error('GET /public/service-pages/:slug failed:', e?.message ?? e);
     res.status(500).json({ error: 'db_error' });
   }
 });

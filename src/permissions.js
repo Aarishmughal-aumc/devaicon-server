@@ -77,6 +77,13 @@ export const PERMISSIONS = [
       'Read the applications people send from the careers page, download their résumés and track each one.',
   },
   {
+    key: 'services.manage',
+    group: 'Website',
+    label: 'Manage service pages',
+    description:
+      'Build service pages from content blocks, import and export them, and publish or remove them.',
+  },
+  {
     key: 'users.manage',
     group: 'Team',
     label: 'Manage users',

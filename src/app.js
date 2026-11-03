@@ -18,6 +18,7 @@ import postsRoutes from "./routes/posts.js";
 import publicRoutes from "./routes/public.js";
 import jobsRoutes from "./routes/jobs.js";
 import applicationsRoutes from "./routes/applications.js";
+import servicePagesRoutes from "./routes/servicePages.js";
 import {
   authorsRouter,
   ctasRouter,
@@ -36,8 +37,9 @@ export function createApp() {
     }),
   );
 
-  // Post bodies are whole documents; everything else stays small.
+  // Post and service page bodies are whole documents; everything else stays small.
   app.use("/api/posts", express.json({ limit: "2mb" }));
+  app.use("/api/service-pages", express.json({ limit: "1mb" }));
   // An application carries its résumé (up to 5 MB) as base64.
   app.use("/api/public/applications", express.json({ limit: "8mb" }));
   app.use(express.json({ limit: "100kb" }));
@@ -62,6 +64,7 @@ export function createApp() {
   app.use("/api/categories", categoriesRouter);
   app.use("/api/jobs", jobsRoutes);
   app.use("/api/applications", applicationsRoutes);
+  app.use("/api/service-pages", servicePagesRoutes);
   app.use("/api/public", publicRoutes);
 
   app.use((_req, res) => res.status(404).json({ error: "not_found" }));
